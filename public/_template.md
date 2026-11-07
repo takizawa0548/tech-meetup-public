@@ -29,7 +29,7 @@ agreed_posting_campaign_term: false
 
 ## デモ
 
-実際に動くサンプル: https://github.com/<owner>/tech-meetup-public/tree/main/demos/<回のフォルダ>
+実際に動くサンプル: https://github.com/takizawa0548/tech-meetup-public/tree/main/demos/<回のフォルダ>
 
 ## まとめ
 
