@@ -1,0 +1,14 @@
+{
+  "name": "tech-meetup-public",
+  "version": "1.0.0",
+  "description": "社内ミートアップの公開デモと Qiita 記事",
+  "scripts": {
+    "preview": "qiita preview",
+    "publish": "qiita publish --all"
+  },
+  "type": "commonjs",
+  "devDependencies": {
+    "@qiita/qiita-cli": "^1.12.0"
+  },
+  "private": true
+}

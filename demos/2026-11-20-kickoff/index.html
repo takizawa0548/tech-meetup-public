@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>デモ: kickoff</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; line-height: 1.8; }
+      button { font-size: 1rem; padding: 8px 16px; }
+    </style>
+  </head>
+  <body>
+    <h1>デモ: kickoff</h1>
+    <p>ここに実際に触れるサンプルを置きます。ビルド不要の HTML / JS がいちばん手軽です。</p>
+    <button id="btn">押してみる</button>
+    <p id="out"></p>
+    <script type="module">
+      let count = 0
+      document.querySelector('#btn').addEventListener('click', () => {
+        count += 1
+        document.querySelector('#out').textContent = `${count} 回押されました`
+      })
+    </script>
+  </body>
+</html>
