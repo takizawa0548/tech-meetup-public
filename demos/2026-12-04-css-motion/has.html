@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>デモ 3: :has() とコンテナクエリ</title>
+    <link rel="stylesheet" href="./style.css" />
+    <!-- 「仕組みを見る」モード（描画前に効かせるため、module ではない普通の script） -->
+    <script src="./explain.js"></script>
+    <style>
+      section { margin: 40px 0; }
+
+      /* ===== ① :has() — 子の状態で親の見た目を変える ===== */
+      .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+      .plan {
+        display: block;
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 16px;
+        padding: 20px;
+        cursor: pointer;
+        transition: border-color 200ms, background 200ms, scale 200ms;
+      }
+      .plan input { accent-color: var(--accent); }
+      .plan:has(input:checked) {
+        border-color: var(--accent);
+        background: color-mix(in oklch, var(--accent) 10%, var(--card));
+        scale: 1.02;
+      }
+      /* 1 つ選ばれたら、選ばれていないものを薄くする（親の親から判定） */
+      .plans:has(input:checked) .plan:not(:has(input:checked)) { opacity: 0.55; }
+
+      /* ===== ② :has() — フォームの入力状態で見た目を変える（JS なし） ===== */
+      .field { display: grid; gap: 4px; margin-bottom: 12px; }
+      .field input {
+        font: inherit;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 2px solid var(--line);
+        background: var(--card);
+        color: var(--fg);
+      }
+      .field .hint { font-size: 0.8rem; color: var(--muted); }
+      .field:has(input:user-invalid) input { border-color: oklch(60% 0.2 25); }
+      .field:has(input:user-invalid) .hint { color: oklch(60% 0.2 25); }
+      .field:has(input:valid:not(:placeholder-shown)) label::after { content: " ✓" / ""; color: oklch(60% 0.15 150); }
+      /* 見た目で「まだ」と伝えるだけ。押せば、ブラウザ標準の検証メッセージが出る */
+      form:has(input:invalid) button[type="submit"] { opacity: 0.4; }
+      fieldset { border: 0; padding: 0; margin: 0; }
+      legend { font-weight: 700; margin-bottom: 8px; }
+
+      /* ===== ③ コンテナクエリ — 置かれた場所の幅で部品が形を変える ===== */
+      .resizer {
+        resize: horizontal;
+        overflow: hidden;
+        width: 100%;
+        min-width: 220px;
+        max-width: 100%;
+        border: 2px dashed var(--line);
+        border-radius: 16px;
+        padding: 12px;
+      }
+      .profile-slot { container-type: inline-size; }
+      .profile {
+        display: grid;
+        gap: 12px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 16px;
+      }
+      .profile .avatar { width: 64px; aspect-ratio: 1; border-radius: 50%; }
+      .profile h3 { margin: 0; font-size: 1.1rem; }
+      .profile p { margin: 0; font-size: 0.9rem; color: var(--muted); }
+      .profile .stats { display: none; gap: 16px; font-size: 0.85rem; }
+
+      @container (min-width: 380px) {
+        .profile { grid-template-columns: auto 1fr; align-items: center; }
+      }
+      @container (min-width: 560px) {
+        .profile { grid-template-columns: auto 1fr auto; }
+        .profile .avatar { width: 96px; }
+        .profile .stats { display: flex; }
+      }
+      /* コンテナの幅に対する単位も使える */
+      .profile h3 { font-size: clamp(1rem, 4cqi, 1.5rem); }
+
+      .layout { display: grid; grid-template-columns: 1fr; gap: 16px; }
+      @media (min-width: 800px) { .layout { grid-template-columns: 2fr 1fr; } }
+      /* ===== 「仕組みを見る」: どのセレクタ・どの条件が効いているかを CSS だけで表示 ===== */
+      [data-explain] .plan:has(input:checked)::after,
+      [data-explain] .plans:has(input:checked) .plan:not(:has(input:checked))::after,
+      [data-explain] form::before,
+      [data-explain] .field:has(input:user-invalid)::after,
+      [data-explain] .profile::before,
+      [data-explain] .profile-slot::after {
+        font: 700 0.7rem/1.4 ui-monospace, monospace;
+        background: var(--accent);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 6px;
+        width: fit-content;
+        max-width: 100%;
+        white-space: normal;
+      }
+      [data-explain] .plan { position: relative; }
+      [data-explain] .plan:has(input:checked)::after { content: ".plan:has(input:checked) に一致" / ""; position: absolute; top: -10px; right: 8px; }
+      [data-explain] .plans:has(input:checked) .plan:not(:has(input:checked))::after {
+        content: ".plans:has(…) .plan:not(:has(…)) に一致 → 薄く" / ""; position: absolute; top: -10px; right: 8px; background: var(--muted);
+      }
+      [data-explain] form { outline: 2px dashed var(--line); outline-offset: 8px; border-radius: 4px; }
+      [data-explain] form::before { display: block; margin-bottom: 12px; content: "form:has(input:invalid) に不一致 → 送信ボタンは通常" / ""; background: oklch(55% 0.15 150); }
+      [data-explain] form:has(input:invalid)::before { content: "form:has(input:invalid) に一致 → 送信ボタンを薄く" / ""; background: oklch(60% 0.2 25); }
+      [data-explain] .field:has(input:user-invalid)::after { content: ".field:has(input:user-invalid) に一致 → 赤枠" / ""; background: oklch(60% 0.2 25); }
+
+      [data-explain] .profile-slot { position: relative; outline: 2px dashed var(--accent); outline-offset: 4px; border-radius: 16px; margin-top: 28px; }
+      [data-explain] .profile-slot::after { content: "コンテナ幅 " attr(data-w) / ""; position: absolute; top: -26px; left: 0; }
+      [data-explain] .profile::before { grid-column: 1 / -1; content: "380px 未満：どの @container 条件にも当てはまらない → 縦並び" / ""; background: var(--muted); }
+      @container (min-width: 380px) {
+        [data-explain] .profile::before { content: "@container (min-width: 380px) 適用中 → 横並び" / ""; background: var(--accent); }
+      }
+      @container (min-width: 560px) {
+        [data-explain] .profile::before { content: "(min-width: 380px) と (min-width: 560px) 適用中 → 数字も表示" / ""; background: oklch(55% 0.15 150); }
+      }
+    </style>
+  </head>
+  <body data-explain-intro="効いているセレクタと @container の条件を、該当する場所に CSS だけで表示しています（::before / ::after と content）。コンテナ幅の数字だけ JS で入れています。">
+    <nav class="top">
+      <a href="./index.html">1. View Transitions</a>
+      <a href="./scroll.html">2. スクロール連動</a>
+      <a href="./has.html" aria-current="page">3. :has() とコンテナクエリ</a>
+    </nav>
+    <main>
+      <h1>状態と場所に反応する部品</h1>
+
+      <section>
+        <h2>① <code>:has()</code> で「選ばれたカード」を目立たせる</h2>
+        <fieldset>
+          <legend>プランを選ぶ</legend>
+          <div class="plans">
+            <label class="plan"><input type="radio" name="plan" /> <strong>ライト</strong><br />まずは試したい人に</label>
+            <label class="plan"><input type="radio" name="plan" /> <strong>スタンダード</strong><br />いちばん人気</label>
+            <label class="plan"><input type="radio" name="plan" /> <strong>プロ</strong><br />チームで使う人に</label>
+          </div>
+        </fieldset>
+        <p class="note">JavaScript は 1 行もありません。<code>.plan:has(input:checked)</code> で親のカードを変えています。</p>
+      </section>
+
+      <section>
+        <h2>② 入力内容に合わせて見た目を変えるフォーム</h2>
+        <form onsubmit="event.preventDefault(); alert('送信（デモ）')">
+          <div class="field">
+            <label for="mail">メールアドレス</label>
+            <input id="mail" type="email" required placeholder="you@example.com" aria-describedby="mail-hint" />
+            <span class="hint" id="mail-hint">「@」を含む形式で入力してください。欄から離れると判定し、違うときは赤枠になります（<code>:user-invalid</code>）</span>
+          </div>
+          <div class="field">
+            <label for="code">会員番号（数字 6 桁）</label>
+            <input id="code" required pattern="\d{6}" inputmode="numeric" placeholder="123456" aria-describedby="code-hint" />
+            <span class="hint" id="code-hint">半角数字 6 桁で入力してください。そろうと ✓ が付きます</span>
+          </div>
+          <button type="submit">送信</button>
+        </form>
+        <p class="note">
+          すべて正しく入力されるまで、送信ボタンを薄く表示します（<code>form:has(input:invalid)</code>）。
+          押した場合はブラウザ標準のメッセージで足りない項目を知らせます。<code>pointer-events: none</code> で押せなくすると、キーボードでは押せてしまううえ、理由も伝わらないので使っていません。
+        </p>
+      </section>
+
+      <section>
+        <h2>③ コンテナクエリ：枠の右下をドラッグして幅を変える</h2>
+        <div class="resizer">
+          <div class="profile-slot">
+            <article class="profile">
+              <div class="avatar swatch" style="--h: 160"></div>
+              <div>
+                <h3>やまだ はなこ</h3>
+                <p>フロントエンドエンジニア。最近は CSS の新機能を追いかけています。</p>
+              </div>
+              <div class="stats"><span><strong>12</strong> 発表</span><span><strong>4</strong> 記事</span></div>
+            </article>
+          </div>
+        </div>
+
+        <h3>同じ部品を、メイン欄と細いサイド欄に置いた例</h3>
+        <div class="layout">
+          <div class="profile-slot" id="wide"></div>
+          <div class="profile-slot" id="narrow"></div>
+        </div>
+        <p class="note">
+          画面幅（メディアクエリ）ではなく「置かれた枠の幅」で形が変わるので、同じ部品をどこに置いても崩れません。
+        </p>
+      </section>
+    </main>
+    <script>
+      // 同じ部品を 2 か所に複製するだけ（見た目の切り替えは CSS だけで行っている）
+      const tpl = document.querySelector('.profile')
+      for (const id of ['wide', 'narrow']) document.getElementById(id).append(tpl.cloneNode(true))
+      // 「仕組みを見る」用に、各コンテナの今の幅を data-w に入れる（表示は CSS の attr() で行う）
+      const ro = new ResizeObserver((entries) => {
+        for (const e of entries) e.target.dataset.w = `${Math.round(e.contentBoxSize[0].inlineSize)}px`
+      })
+      document.querySelectorAll('.profile-slot').forEach((el) => ro.observe(el))
+    </script>
+  </body>
+</html>

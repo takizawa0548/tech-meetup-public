@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>デモ 1: 詳細</title>
+    <link rel="stylesheet" href="./style.css" />
+    <!-- 「仕組みを見る」モード（描画前に効かせるため、module ではない普通の script） -->
+    <script src="./explain.js"></script>
+    <!--
+      blocking="render": 色・見出し・遷移の名前を入れ終えるまで描画を待つ。
+      これがないと、遷移後の画面が中身の入る前に撮られることがある
+    -->
+    <script type="module" blocking="render" src="./detail.js"></script>
+    <style>
+      @media (prefers-reduced-motion: no-preference) {
+        @view-transition { navigation: auto; }
+      }
+
+      .hero {
+        view-transition-name: var(--vt);
+        aspect-ratio: 16 / 7;
+        border-radius: 24px;
+        margin-bottom: 24px;
+      }
+      h1 { view-transition-name: var(--vt-title); width: fit-content; }
+
+      /* 遷移の動きもカスタマイズできる（本文だけ下からふわっと） */
+      .body { view-transition-name: detail-body; }
+      ::view-transition-new(detail-body) {
+        animation: rise 400ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+      }
+      @keyframes rise { from { opacity: 0; translate: 0 24px; } }
+
+      a.back { color: var(--accent); }
+    </style>
+  </head>
+  <body data-explain-intro="遷移を遅くし、撮影した旧の見た目に赤い実線、新しい画面に緑の点線を付けています。戻るボタンも試してください。">
+    <nav class="top">
+      <a href="./index.html" aria-current="page">1. View Transitions</a>
+      <a href="./scroll.html">2. スクロール連動</a>
+      <a href="./has.html">3. :has() とコンテナクエリ</a>
+    </nav>
+    <main>
+      <div class="hero swatch" id="hero"></div>
+      <h1 id="title"></h1>
+      <div class="body">
+        <p id="text"></p>
+        <p class="note">
+          一覧のカードと、このページの大きな画像・見出しに同じ <code>view-transition-name</code> が付いているので、
+          ブラウザが「同じもの」とみなして位置と大きさを補間しています。
+        </p>
+        <p><a class="back" href="./index.html">← 一覧に戻る</a>（ブラウザの戻るボタンでもアニメーションします）</p>
+      </div>
+    </main>
+  </body>
+</html>
