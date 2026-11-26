@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>デモ 2: スクロール連動アニメーション</title>
+    <link rel="stylesheet" href="./style.css" />
+    <!-- 「仕組みを見る」モード（描画前に効かせるため、module ではない普通の script） -->
+    <script src="./explain.js"></script>
+    <style>
+      /* ===== ① 読了バー：ページのスクロール量 = アニメーションの進み具合 ===== */
+      .progress {
+        position: fixed;
+        inset: 0 0 auto 0;
+        height: 4px;
+        background: var(--accent);
+        transform-origin: left;
+        z-index: 20;
+        animation: grow linear both;
+        animation-timeline: scroll(root);
+      }
+      @keyframes grow { from { scale: 0 1; } }
+
+      /* ===== ② 画面に入ったらフェードイン：要素の見え具合 = 進み具合 ===== */
+      .reveal {
+        animation: reveal linear both;
+        animation-timeline: view();
+        animation-range: entry 0% cover 35%;
+      }
+      @keyframes reveal {
+        from { opacity: 0; translate: 0 48px; scale: 0.96; }
+      }
+
+      /* ===== ③ パララックス：背景と前景を違う速さで動かす ===== */
+      .parallax {
+        position: relative;
+        height: 70vh;
+        border-radius: 24px;
+        overflow: hidden;
+        display: grid;
+        place-items: center;
+        margin: 48px 0;
+      }
+      .parallax .bg {
+        position: absolute;
+        inset: -20% 0;
+        animation: drift linear both;
+        animation-timeline: view();
+      }
+      @keyframes drift { from { translate: 0 -15%; } to { translate: 0 15%; } }
+      .parallax h2 {
+        position: relative;
+        color: white;
+        font-size: clamp(1.6rem, 5vw, 3rem);
+        text-shadow: 0 2px 16px oklch(0% 0 0 / 0.4);
+        animation: zoom linear both;
+        animation-timeline: view();
+        animation-range: contain;
+      }
+      @keyframes zoom { from { scale: 0.8; } 50% { scale: 1.05; } to { scale: 0.8; } }
+
+      /* ===== ④ 横スクロールの写真送り：縦スクロールを横の動きに変換 ===== */
+      .track-wrap { height: 300vh; view-timeline: --strip block; }
+      .track-sticky {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+        container-type: inline-size; /* 100cqw = この枠の幅（スクロールバーを含まない） */
+      }
+      .strip {
+        display: flex;
+        gap: 16px;
+        padding-inline: 16px;
+        animation: slide linear both;
+        animation-timeline: --strip;
+        animation-range: contain;
+      }
+      .strip > div { flex: 0 0 min(60vw, 360px); aspect-ratio: 3 / 4; border-radius: 20px; }
+      @keyframes slide { to { translate: calc(-100% + 100cqw) 0; } }
+
+      .card {
+        position: relative;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 20px;
+        margin: 24px 0;
+      }
+
+      /* 「仕組みを見る」: カードの進み具合バッジと、パネルの表 */
+      .card-badge { position: absolute; top: -10px; right: 12px; }
+      .tl-table { width: 100%; border-collapse: collapse; }
+      .tl-table th, .tl-table td { text-align: left; padding: 2px 4px; border-bottom: 1px solid var(--line); font-weight: 400; }
+      .tl-table thead th { color: var(--muted); font-size: 0.7rem; }
+      .tl-table tbody th { white-space: nowrap; }
+      .explain-panel .hint { font-weight: 400; color: var(--muted); }
+
+      /* 対応していないブラウザ・動きを減らす設定の人には、アニメーションなしで普通に表示する
+         （スクロール連動は animation-duration: 0.01ms では止まらないので、animation: none を明示する） */
+      @supports not (animation-timeline: view()) {
+        .progress { display: none; }
+        .reveal, .parallax .bg, .parallax h2, .strip { animation: none; }
+        .track-wrap { height: auto; }
+        .track-sticky { position: static; height: auto; overflow-x: auto; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .progress { display: none; }
+        .reveal, .parallax .bg, .parallax h2, .strip { animation: none; }
+        .track-wrap { height: auto; }
+        .track-sticky { position: static; height: auto; overflow-x: auto; }
+      }
+    </style>
+  </head>
+  <body data-explain-intro="スクロールすると、各アニメーションのタイムライン上の位置と進み具合が更新されます。">
+    <div class="progress" aria-hidden="true"></div>
+    <nav class="top">
+      <a href="./index.html">1. View Transitions</a>
+      <a href="./scroll.html" aria-current="page">2. スクロール連動</a>
+      <a href="./has.html">3. :has() とコンテナクエリ</a>
+    </nav>
+    <main>
+      <h1>JavaScript なしのスクロール演出</h1>
+      <p>
+        <code>animation-timeline</code> を使うと、アニメーションの「時間」をスクロール量に置き換えられます。
+        スクロールイベントを監視する JS が不要です。動かすのを transform / opacity に絞れば、
+        ページの処理が混んでいてもなめらかに動きます。
+      </p>
+      <p class="note">上の青いバーが読了バー（①）です。下にスクロールしてみてください。</p>
+
+      <div class="card reveal">
+        <h2>② 画面に入ったらフェードイン</h2>
+        <p><code>animation-timeline: view()</code> で、要素が画面に入ってくる割合がそのまま進み具合になります。</p>
+      </div>
+      <div class="card reveal">
+        <h2>戻ると逆再生される</h2>
+        <p>時間ではなく位置で決まるので、上にスクロールすると巻き戻ります。IntersectionObserver で作るより自然です。</p>
+      </div>
+      <div class="card reveal">
+        <h2><code>animation-range</code> で区間を指定</h2>
+        <p><code>entry 0% cover 35%</code> は「画面に入り始めてから、入って出ていくまでの区間の 35% 地点まで」の間だけ動く、という意味です。</p>
+      </div>
+
+      <section class="parallax">
+        <div class="bg swatch" style="--h: 210"></div>
+        <h2>③ パララックス</h2>
+      </section>
+
+      <div class="card reveal">
+        <h2>④ 縦スクロールで横に送る</h2>
+        <p>親要素に名前付きのタイムライン（<code>view-timeline: --strip</code>）を付け、子の横移動に結び付けます。</p>
+      </div>
+    </main>
+
+    <section class="track-wrap" aria-label="横に送られる色見本">
+      <div class="track-sticky">
+        <div class="strip">
+          <div class="swatch" style="--h: 20"></div>
+          <div class="swatch" style="--h: 60"></div>
+          <div class="swatch" style="--h: 120"></div>
+          <div class="swatch" style="--h: 180"></div>
+          <div class="swatch" style="--h: 240"></div>
+          <div class="swatch" style="--h: 300"></div>
+        </div>
+      </div>
+    </section>
+
+    <main>
+      <div class="card reveal">
+        <h2>おしまい</h2>
+        <p>
+          OS の「視差効果を減らす／動きを減らす」設定がオンの人には、動きを止めて普通に表示しています（<code>prefers-reduced-motion</code>）。
+          定番の <code>animation-duration: 0.01ms</code> ではスクロール連動は止まらないので、<code>animation: none</code> を明示しています。
+        </p>
+      </div>
+    </main>
+    <script type="module" src="./explain-scroll.js"></script>
+  </body>
+</html>
